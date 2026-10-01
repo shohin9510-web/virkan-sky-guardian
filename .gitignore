@@ -1,0 +1,32 @@
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Android / Gradle
+.gradle/
+**/build/
+android/local.properties
+android/.idea/
+android/app/src/main/assets/index.html
+android/app/src/main/assets/three.min.js
+android/app/src/main/assets/assets/
+
+# Java / Kotlin
+*.class
+
+# Logs / temp
+*.log
+*.tmp
+*.bak
+
+# Signing material — never commit
+*.jks
+*.keystore
+keystore.properties
+
+# Generated packages
+*.apk
+*.aab
