@@ -1,0 +1,28 @@
+name: Package VIRKAN HTML Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'web/**'
+      - '.github/workflows/package-web.yml'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify offline web files
+        run: |
+          test -f web/index.html
+          test -f web/three.min.js
+          grep -q 'src="three.min.js"' web/index.html
+
+      - name: Upload offline HTML test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Virkan-v2.0-HTML-offline-test
+          path: web/
+          if-no-files-found: error
