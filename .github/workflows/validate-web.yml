@@ -1,0 +1,25 @@
+name: Validate VIRKAN Web Source
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'web/**'
+      - 'scripts/check_web.js'
+      - '.github/workflows/validate-web.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'scripts/check_web.js'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Parse inline JavaScript
+        run: node scripts/check_web.js
