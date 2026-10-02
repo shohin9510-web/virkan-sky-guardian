@@ -1,6 +1,6 @@
 # VIRKAN: SKY GUARDIAN
 
-Мобильный 3D-прототип супергеройской action/open-world игры. Текущая рабочая версия: **v2.0**.
+Мобильный 3D-прототип супергеройской action/open-world игры. Текущая рабочая версия: **v2.1**.
 
 Основной исходник игры находится в `web/index.html`. Android-проект расположен в `android/`, а GitHub Actions — в `.github/workflows/`.
 
@@ -9,7 +9,10 @@
 1. Изменяйте `web/index.html`.
 2. Проверяйте JavaScript через `node scripts/check_web.js`.
 3. Создавайте Pull Request в `main`.
-4. После merge GitHub Actions проверит веб-версию и соберёт debug APK.
+4. Pull Request запускает проверку JavaScript, регрессионные тесты и сборку debug APK без merge.
+
+Полная локальная проверка: `node scripts/check_web.js && node --test scripts/*.test.cjs`.
+Проверки игровой логики выполняются с настоящей Three.js и заглушкой рендерера: они не измеряют FPS на устройстве.
 
 ## Android
 
