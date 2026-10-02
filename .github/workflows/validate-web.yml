@@ -5,12 +5,12 @@ on:
     branches: [ main, master ]
     paths:
       - 'web/**'
-      - 'scripts/check_web.js'
+      - 'scripts/**'
       - '.github/workflows/validate-web.yml'
   pull_request:
     paths:
       - 'web/**'
-      - 'scripts/check_web.js'
+      - 'scripts/**'
   workflow_dispatch:
 
 jobs:
@@ -22,4 +22,7 @@ jobs:
         with:
           node-version: '20'
       - name: Parse inline JavaScript
-        run: node scripts/check_web.js
+        run: |
+          node scripts/check_web.js
+          node --test scripts/*.test.cjs
+          python3 scripts/test_android_assets.py

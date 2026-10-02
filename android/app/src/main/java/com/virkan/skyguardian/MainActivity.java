@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebChromeClient;
@@ -44,13 +45,11 @@ public class MainActivity extends Activity {
 
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
-        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.setBackgroundColor(0xFF05080D);
 
-        if (savedInstanceState == null) {
+        // restoreState may fail after process recreation. Never leave a blank game.
+        if (savedInstanceState == null || webView.restoreState(savedInstanceState) == null) {
             webView.loadUrl("file:///android_asset/index.html");
-        } else {
-            webView.restoreState(savedInstanceState);
         }
     }
 
@@ -69,6 +68,27 @@ public class MainActivity extends Activity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) enterImmersive();
+    }
+
+    @Override
+    protected void onPause() {
+        if (webView != null) {
+            webView.evaluateJavascript("window.virkanAppPause && window.virkanAppPause()", null);
+            webView.onPause();
+            // onPause alone does not suspend JavaScript timers.
+            webView.pauseTimers();
+        }
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.resumeTimers();
+            webView.onResume();
+            webView.evaluateJavascript("window.virkanAppResume && window.virkanAppResume()", null);
+        }
     }
 
     @Override
@@ -93,7 +113,13 @@ public class MainActivity extends Activity {
             webView.stopLoading();
             webView.setWebChromeClient(null);
             webView.setWebViewClient(null);
+            // WebView must be detached before destruction to release its renderer.
+            if (webView.getParent() instanceof ViewGroup) {
+                ((ViewGroup) webView.getParent()).removeView(webView);
+            }
+            webView.removeAllViews();
             webView.destroy();
+            webView = null;
         }
         super.onDestroy();
     }

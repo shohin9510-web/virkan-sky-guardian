@@ -10,8 +10,8 @@ android {
         applicationId 'com.virkan.skyguardian'
         minSdk 26
         targetSdk 35
-        versionCode 20
-        versionName '2.0'
+        versionCode 21
+        versionName '2.1'
     }
 
     buildTypes {
@@ -30,80 +30,35 @@ android {
     }
 }
 
-def webSource = file('../../web/index.html')
-def webAssets = file('../../web/assets')
+// web/ is canonical. Sync makes incremental builds remove deleted assets too,
+// and never downloads a second copy of Three.js from a CDN.
+def webDir = file('../../web')
 def androidAssetsDir = file('src/main/assets')
-def androidIndex = file('src/main/assets/index.html')
-def threeAsset = file('src/main/assets/three.min.js')
 
-tasks.register('prepareGameHtml') {
-    inputs.file(webSource)
-    if (webAssets.exists()) inputs.dir(webAssets)
-    outputs.file(androidIndex)
-    doLast {
-        if (!webSource.exists()) {
-            throw new GradleException("Missing canonical game source: ${webSource}")
-        }
-        androidIndex.parentFile.mkdirs()
-        def html = webSource.getText('UTF-8')
-        html = html.replace(
-            'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js',
-            'three.min.js'
-        )
-        html = html.replace(
-            'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js',
-            'three.min.js'
-        )
-        androidIndex.setText(html, 'UTF-8')
-        if (webAssets.exists()) {
-            copy {
-                from webAssets
-                into new File(androidAssetsDir, 'assets')
+tasks.register('prepareGameAssets', Sync) {
+    filteringCharset = 'UTF-8'
+    inputs.file(new File(webDir, 'index.html'))
+    inputs.file(new File(webDir, 'three.min.js'))
+    from(webDir) {
+        include 'index.html', 'three.min.js', 'assets/**'
+        filesMatching('index.html') {
+            filter { line ->
+                line.replace('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js', 'three.min.js')
+                    .replace('https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js', 'three.min.js')
             }
         }
-        println "Prepared Android game HTML and web assets: ${androidIndex}"
     }
-}
-
-tasks.register('prepareOfflineThreeJs') {
-    outputs.file(threeAsset)
-    doLast {
-        if (threeAsset.exists() && threeAsset.length() > 100000) {
-            println "Three.js already bundled: ${threeAsset}"
-            return
-        }
-        threeAsset.parentFile.mkdirs()
-        def urls = [
-            'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js',
-            'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js'
-        ]
-        Exception lastError = null
-        for (String address : urls) {
-            try {
-                println "Downloading Three.js for offline APK from ${address}"
-                new URL(address).withInputStream { input ->
-                    threeAsset.withOutputStream { output -> output << input }
-                }
-                if (threeAsset.length() > 100000) {
-                    println "Bundled Three.js: ${threeAsset.length()} bytes"
-                    lastError = null
-                    break
-                }
-            } catch (Exception e) {
-                lastError = e
-                if (threeAsset.exists()) threeAsset.delete()
+    into androidAssetsDir
+    doFirst {
+        for (String name : ['index.html', 'three.min.js']) {
+            def source = new File(webDir, name)
+            if (!source.isFile() || source.length() == 0) {
+                throw new GradleException("Missing canonical game asset: ${source}")
             }
-        }
-        if (lastError != null || !threeAsset.exists()) {
-            throw new GradleException(
-                'Could not download Three.js during build. Connect the build machine to the internet once and retry.',
-                lastError
-            )
         }
     }
 }
 
 tasks.named('preBuild').configure {
-    dependsOn tasks.named('prepareGameHtml')
-    dependsOn tasks.named('prepareOfflineThreeJs')
+    dependsOn tasks.named('prepareGameAssets')
 }

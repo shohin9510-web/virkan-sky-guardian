@@ -2,12 +2,22 @@ name: Build VIRKAN Android APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'android/**'
+      - 'scripts/*android*'
+      - '.github/workflows/build-android.yml'
   push:
     branches: [ main, master ]
     paths:
       - 'web/**'
       - 'android/**'
+      - 'scripts/*android*'
       - '.github/workflows/build-android.yml'
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -24,12 +34,24 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Build debug APK
-        run: gradle -p android :app:assembleDebug
+      - name: Check game and offline assets
+        run: |
+          node scripts/check_web.js
+          node --test scripts/*.test.cjs
+          python3 scripts/test_android_assets.py
+
+      - name: Build and lint debug APK
+        run: gradle -p android :app:assembleDebug :app:lintDebug
+
+      - name: Verify bundled assets and set version
+        id: package
+        run: |
+          python3 scripts/sync_android_assets.py --check --apk android/app/build/outputs/apk/debug/app-debug.apk
+          echo "version=$(tr -d '\r\n' < VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Virkan-Sky-Guardian-v2.0-debug-apk
+          name: Virkan-Sky-Guardian-${{ steps.package.outputs.version }}-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

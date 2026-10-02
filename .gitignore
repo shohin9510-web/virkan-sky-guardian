@@ -30,3 +30,7 @@ keystore.properties
 # Generated packages
 *.apk
 *.aab
+
+# Python checks
+__pycache__/
+*.py[cod]
